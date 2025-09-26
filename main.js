@@ -304,6 +304,7 @@ function initializeApp() {
             aktualizujPulpit();
         });
     }
+    
     async function dodajZlecenie(event) {
         event.preventDefault();
         const wybranyKlientId = zlecenieKlientSelect.value;
@@ -331,10 +332,12 @@ function initializeApp() {
             zlecenieMaszynaSelect.disabled = true;
         } catch (e) { console.error("Błąd dodawania zlecenia: ", e); }
     }
+    
     function obliczIPokazPodsumowanieFinansowe() {
         const podsumowanie = obliczPodsumowanieFinansowe(miesiacSummaryInput.value, wszystkieZlecenia);
         summaryContainer.innerHTML = `<p>Suma godzin: <strong>${podsumowanie.sumaGodzin.toFixed(2)} h</strong></p><p>Wartość Brutto: <strong>${podsumowanie.sumaBrutto.toFixed(2)} zł</strong></p><p>Wartość Netto (po 30%): <strong>${podsumowanie.sumaNetto.toFixed(2)} zł</strong></p>`;
     }
+    
     async function obslugaListyZlecen(event) {
         const li = event.target.closest('li'); if (!li) return;
         const docId = li.dataset.id;
@@ -368,6 +371,7 @@ function initializeApp() {
             }
         }
     }
+    
     async function zapiszPrzypisanie(event) {
         event.preventDefault();
         const zlecenieId = assignForm['assign-zlecenie-id'].value;
@@ -405,6 +409,7 @@ function initializeApp() {
             }, 700);
         } catch (error) { console.error("Błąd podczas przypisywania:", error); }
     }
+    
     function renderMagazynWModalu() {
         modalMagazynLista.innerHTML = wszystkieProdukty.filter(p => p.ilosc > 0).map(p => `<div class="modal-stock-item" data-id="${p.id}" data-name="${p.nazwa}" data-qty="${p.ilosc}" data-is-oil="${p.jestOlejem || false}"><span>${p.nazwa}</span><span class="item-qty">Na stanie: ${p.ilosc}</span></div>`).join('');
     }
