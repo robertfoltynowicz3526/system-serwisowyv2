@@ -358,10 +358,15 @@ function initializeApp() {
                 const zlecenie = docSnap.data();
                 document.getElementById('modal-zlecenie-nazwa').textContent = zlecenie.klientNazwa ? `${zlecenie.klientNazwa} - ${zlecenie.typMaszyny} ${zlecenie.model}` : zlecenie.nrZlecenia;
                 document.getElementById('complete-zlecenie-id').value = docId;
-                document.getElementById('modal-czesci-section').style.display = zlecenie.klientNazwa ? 'block' : 'none';
+                const czesciSection = document.getElementById('modal-czesci-section');
+                if (zlecenie.klientNazwa) {
+                    czesciSection.style.display = 'block';
+                    renderMagazynWModalu();
+                } else {
+                    czesciSection.style.display = 'none';
+                }
                 czesciDoZlecenia = [];
                 renderCzesciDoZlecenia();
-                if (zlecenie.klientNazwa) { renderMagazynWModalu(); }
                 completeModal.style.display = 'block';
             }
         }
@@ -449,23 +454,30 @@ function initializeApp() {
     async function obslugaZakonczeniaZlecenia(event) {
         event.preventDefault();
         const docId = document.getElementById('complete-zlecenie-id').value;
+        const zlecenieDoc = await getDoc(doc(db, "zlecenia", docId));
+        const jestSzybkie = !zlecenieDoc.data().maszynaId;
+
         const dane = { status: 'ukończone', wyfakturowaneGodziny: Number(document.getElementById('wyfakturowane-godziny').value), typZlecenia: document.getElementById('typ-zlecenia').value, dataUkonczenia: new Date().toISOString().split('T')[0], uzyteCzesci: czesciDoZlecenia };
         try {
-            await runTransaction(db, async (t) => {
-                const zlecenieRef = doc(db, "zlecenia", docId);
-                const partPromises = czesciDoZlecenia.map(czesc => t.get(doc(db, "magazyn", czesc.id)));
-                const partDocs = await Promise.all(partPromises);
-                t.update(zlecenieRef, dane);
-                for (let i = 0; i < czesciDoZlecenia.length; i++) {
-                    const czesc = czesciDoZlecenia[i];
-                    const produktDoc = partDocs[i];
-                    if (!produktDoc.exists()) throw `Produkt ${czesc.nazwa} nie istnieje!`;
-                    const nowaIlosc = produktDoc.data().ilosc - czesc.ilosc;
-                    if (nowaIlosc < 0) throw `Za mało produktu ${czesc.nazwa} na stanie!`;
-                    t.update(doc(db, "magazyn", czesc.id), { ilosc: nowaIlosc });
-                }
-            });
-            alert("Zlecenie zakończone, stan magazynowy zaktualizowany!");
+            if (jestSzybkie) {
+                await updateDoc(doc(db, "zlecenia", docId), dane);
+            } else {
+                await runTransaction(db, async (t) => {
+                    const zlecenieRef = doc(db, "zlecenia", docId);
+                    const partPromises = czesciDoZlecenia.map(czesc => t.get(doc(db, "magazyn", czesc.id)));
+                    const partDocs = await Promise.all(partPromises);
+                    t.update(zlecenieRef, dane);
+                    for (let i = 0; i < czesciDoZlecenia.length; i++) {
+                        const czesc = czesciDoZlecenia[i];
+                        const produktDoc = partDocs[i];
+                        if (!produktDoc.exists()) throw `Produkt ${czesc.nazwa} nie istnieje!`;
+                        const nowaIlosc = produktDoc.data().ilosc - czesc.ilosc;
+                        if (nowaIlosc < 0) throw `Za mało produktu ${czesc.nazwa} na stanie!`;
+                        t.update(doc(db, "magazyn", czesc.id), { ilosc: nowaIlosc });
+                    }
+                });
+            }
+            alert("Zlecenie zakończone!");
             completeModal.style.display = 'none';
             completeModalForm.reset();
         } catch (error) { console.error("BŁĄD TRANSAKCJI: ", error); alert(`Wystąpił błąd: ${error}`); }
