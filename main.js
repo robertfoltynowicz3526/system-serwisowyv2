@@ -1,6 +1,6 @@
 import { db } from './firebase-config.js';
 import { collection, query, orderBy, onSnapshot, doc, deleteDoc, updateDoc, getDoc, runTransaction, addDoc, setDoc } from "firebase/firestore";
-import Papa from 'papaparse';
+import Papa from 'paparse';
 
 initializeApp();
 
@@ -456,8 +456,7 @@ function initializeApp() {
         const docId = document.getElementById('complete-zlecenie-id').value;
         const zlecenieDoc = await getDoc(doc(db, "zlecenia", docId));
         const jestSzybkie = !zlecenieDoc.data().maszynaId;
-
-        const dane = { status: 'ukończone', wyfakturowaneGodziny: Number(document.getElementById('wyfakturowane-godziny').value), typZlecenia: document.getElementById('typ-zlecenia').value, dataUkonczenia: new Date().toISOString().split('T')[0], uzyteCzesci: czesciDoZlecenia };
+        const dane = { status: 'ukończone', wyfakturowaneGodziny: Number(document.getElementById('wyfakturowane-godziny').value), typZlecenia: document.getElementById('typ-zlecenia').value, dataUkonczenia: new Date().toISOString().split('T')[0], uzyteCzesci: jestSzybkie ? [] : czesciDoZlecenia };
         try {
             if (jestSzybkie) {
                 await updateDoc(doc(db, "zlecenia", docId), dane);
